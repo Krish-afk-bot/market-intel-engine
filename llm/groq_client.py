@@ -4,14 +4,12 @@ from pathlib import Path
 from dotenv import load_dotenv
 from groq import Groq
 
-# Always load .env from the project root (two levels up from llm/)
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 _ENV_PATH = _PROJECT_ROOT / ".env"
 load_dotenv(_ENV_PATH)
 
 
 class GroqClient:
-    """Thin wrapper around the Groq chat-completion API."""
 
     MODEL = "llama-3.1-8b-instant"
     TEMPERATURE = 0.3
@@ -27,3 +25,26 @@ class GroqClient:
         self.client = Groq(api_key=api_key)
         self.call_count: int = 0
         self.total_tokens: int = 0
+
+    def complete(self, prompt: str, system: str | None = None) -> str:
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.MODEL,
+                messages=messages,
+                temperature=self.TEMPERATURE,
+                max_tokens=self.MAX_TOKENS,
+            )
+            self.call_count += 1
+            usage = response.usage
+            if usage:
+                self.total_tokens += usage.total_tokens
+            return response.choices[0].message.content
+        except Exception as exc:
+            raise Exception(
+                f"Groq API error (model={self.MODEL}): {exc}"
+            ) from exc
