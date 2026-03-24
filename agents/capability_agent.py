@@ -126,3 +126,48 @@ do they discuss based on the community data?"""
         result = self.llm_call(prompt, system=SYSTEM_PROMPT)
         self.memory.set("capabilities", result)
         return result
+
+    def refine(self, market: str, improvement_instructions: str) -> str:
+        research = self.memory.get("research") or {}
+        original = self.memory.get("capabilities") or ""
+
+        prompt = f"""You are a senior talent and capability strategist.
+You previously wrote a capability analysis for {market}.
+A quality control review found specific problems with it.
+
+YOUR ORIGINAL ANALYSIS:
+{original}
+
+QUALITY CONTROL FEEDBACK — YOU MUST FIX THESE ISSUES:
+{improvement_instructions}
+
+ORIGINAL RESEARCH DATA:
+
+JOB REQUIREMENTS:
+{chr(10).join([f"- {r.get('title', 'N/A')}: {r.get('snippet', '')}" for r in research.get("skills_data", {}).get("skills_results", [])])}
+
+PROFESSIONAL TOOLS:
+{chr(10).join([f"- {r.get('title', 'N/A')}: {r.get('snippet', '')}" for r in research.get("skills_data", {}).get("tools_results", [])])}
+
+SALARY DATA:
+{chr(10).join([f"- {r.get('title', 'N/A')}: {r.get('snippet', '')}" for r in research.get("skills_data", {}).get("salary_results", [])])}
+
+Rewrite the full capability analysis.
+Directly fix every issue listed in the feedback above.
+Maintain the same structure:
+## Core Skills Required
+## Professional Tools and Platforms
+## Salary and Demand Reality
+## Learning Roadmap
+
+Do not mention that this is a rewrite or that feedback
+was received. Write as a clean final analysis."""
+
+        system = """You are a senior talent strategist.
+You write clear, specific, grounded capability analysis.
+You incorporate feedback directly without mentioning it."""
+
+        logger.info("CapabilityAgent: refining analysis for '%s'", market)
+        result = self.llm_call(prompt, system)
+        self.memory.set("capabilities", result)
+        return result
