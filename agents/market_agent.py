@@ -136,3 +136,48 @@ Write for a professional investor or executive audience."""
         result = self.llm_call(prompt, system=SYSTEM_PROMPT)
         self.memory.set("market_analysis", result)
         return result
+
+    def refine(self, market: str, improvement_instructions: str) -> str:
+        research = self.memory.get("research") or {}
+        original = self.memory.get("market_analysis") or ""
+
+        prompt = f"""You are a senior market analyst.
+You previously wrote a market analysis for {market}.
+A quality control review found specific problems with it.
+
+YOUR ORIGINAL ANALYSIS:
+{original}
+
+QUALITY CONTROL FEEDBACK — YOU MUST FIX THESE ISSUES:
+{improvement_instructions}
+
+ORIGINAL RESEARCH DATA (use this to ground your rewrite):
+
+MARKET SIZE AND GROWTH:
+{chr(10).join([f"- {r.get('title', 'N/A')}: {r.get('snippet', '')}" for r in research.get("market_overview", {}).get("web_results", [])])}
+
+TOP COMPANIES:
+{chr(10).join([f"- {r.get('title', 'N/A')}: {r.get('snippet', '')}" for r in research.get("market_overview", {}).get("players_results", [])])}
+
+LATEST NEWS:
+{chr(10).join([f"- {r.get('title', 'N/A')}: {r.get('snippet', '')}" for r in research.get("latest_news", {}).get("web_news", [])])}
+
+Rewrite the full market analysis.
+Directly fix every issue listed in the feedback above.
+Keep sections that scored well. Improve sections that did not.
+Maintain the same structure:
+## Dominant Market Narrative
+## Current Trends (with evidence)
+## Future Outlook
+
+Do not mention that this is a rewrite or that feedback
+was received. Write as a clean final analysis."""
+
+        system = """You are a senior market analyst.
+You write clear, grounded, opinionated market analysis.
+You incorporate feedback directly without mentioning it."""
+
+        logger.info("MarketAgent: refining analysis for '%s'", market)
+        result = self.llm_call(prompt, system)
+        self.memory.set("market_analysis", result)
+        return result
