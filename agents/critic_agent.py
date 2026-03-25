@@ -88,3 +88,54 @@ Start your response with { and end with }"""
 
         logger.info("CriticAgent: running quality review for '%s'", market)
         raw = self.llm_call(prompt, system)
+
+        raw = raw.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        raw = raw.strip()
+
+        start = raw.find("{")
+        end = raw.rfind("}") + 1
+        if start != -1 and end > start:
+            raw = raw[start:end]
+
+        try:
+            feedback = json.loads(raw)
+        except Exception as e:
+            logger.warning("CriticAgent: failed to parse JSON feedback: %s", e)
+            feedback = {
+                "overall_quality": 7,
+                "sections": {
+                    "market_analysis": {
+                        "needs_improvement": False,
+                        "score": 7,
+                        "flaws": [],
+                        "improvement_instructions": ""
+                    },
+                    "capabilities": {
+                        "needs_improvement": False,
+                        "score": 7,
+                        "flaws": [],
+                        "improvement_instructions": ""
+                    },
+                    "strategy": {
+                        "needs_improvement": False,
+                        "score": 7,
+                        "flaws": [],
+                        "improvement_instructions": ""
+                    }
+                },
+                "sections_to_rerun": []
+            }
+
+        self.memory.set("critic_feedback", feedback)
+
+        print(
+            f"[CriticAgent] Quality: "
+            f"{feedback.get('overall_quality')}/10 | "
+            f"Sections to rerun: "
+            f"{feedback.get('sections_to_rerun', [])}"
+        )
+        return feedback
