@@ -58,3 +58,48 @@ Be brutally honest. No motivational language."""
         result = self.llm_call(prompt, system=SYSTEM_PROMPT)
         self.memory.set("strategy", result)
         return result
+
+    def refine(self, market: str, improvement_instructions: str) -> str:
+        market_analysis = self.memory.get("market_analysis") or ""
+        capabilities = self.memory.get("capabilities") or ""
+        original = self.memory.get("strategy") or ""
+
+        prompt = f"""You are a chief strategy officer.
+You previously wrote a market entry strategy for {market}.
+A quality control review found specific problems with it.
+
+YOUR ORIGINAL STRATEGY:
+{original}
+
+QUALITY CONTROL FEEDBACK — YOU MUST FIX THESE ISSUES:
+{improvement_instructions}
+
+CURRENT MARKET ANALYSIS (may have been improved):
+{market_analysis}
+
+CURRENT CAPABILITY ANALYSIS (may have been improved):
+{capabilities}
+
+Rewrite the full strategy section.
+Directly fix every issue listed in the feedback above.
+Every recommendation must reference a specific finding
+from the market analysis or capabilities above.
+No generic advice.
+Maintain the same structure:
+## Best Entry Paths
+## Who Should Enter Now
+## Who Should Wait
+## Unfair Advantages
+## Key Risks
+
+Do not mention that this is a rewrite or that feedback
+was received. Write as a clean final strategy."""
+
+        system = """You are a chief strategy officer.
+You write brutally honest, specific, actionable strategy.
+You incorporate feedback directly without mentioning it."""
+
+        logger.info("StrategyAgent: refining strategy for '%s'", market)
+        result = self.llm_call(prompt, system)
+        self.memory.set("strategy", result)
+        return result
