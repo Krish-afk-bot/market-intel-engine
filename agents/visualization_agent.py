@@ -112,3 +112,63 @@ Never wrap in code fences. Start your response with {"""
 
         logger.info("VisualizationAgent: extracting data for '%s'", market)
         raw = self.llm.complete(prompt, system=system)
+
+        logger.debug("VisualizationAgent raw response (first 200 chars): %s", raw[:200])
+        print(f"[VizAgent] Raw response start: {repr(raw[:120])}")
+
+        raw = raw.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        raw = raw.strip()
+
+        start = raw.find("{")
+        end = raw.rfind("}") + 1
+        if start != -1 and end > start:
+            raw = raw[start:end]
+        else:
+            logger.warning("VizAgent: no JSON object found in response")
+            raw = "{}"
+
+        data = None
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            try:
+                import ast
+                import re
+                fixed = re.sub(r'\bTrue\b', 'true', raw)
+                fixed = re.sub(r'\bFalse\b', 'false', fixed)
+                fixed = re.sub(r'\bNone\b', 'null', fixed)
+                parsed = ast.literal_eval(fixed)
+                data = json.loads(json.dumps(parsed))
+                logger.info("VizAgent: recovered via ast.literal_eval")
+            except Exception as e2:
+                logger.warning("VizAgent: ast fallback also failed: %s", e2)
+                print(f"[VizAgent] Both parse attempts failed. Raw: {repr(raw[:300])}")
+
+        if data is None:
+            logger.warning("Failed to parse visualization JSON: falling back to empty structure")
+            data = {
+                "market_metrics": {
+                    "market_name": market,
+                    "estimated_size_billion": None,
+                    "growth_rate_percent": None,
+                    "funding_activity_score": 5,
+                    "market_maturity_score": 5
+                },
+                "trends": [],
+                "skills": [],
+                "risks": [],
+                "section_scores": {
+                    "market_analysis": 5,
+                    "capabilities": 5,
+                    "strategy": 5
+                },
+                "entry_timeline": [],
+                "top_companies": []
+            }
+
+        self.memory.set("visualization_data", data)
+        return data
