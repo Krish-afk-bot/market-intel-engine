@@ -243,3 +243,188 @@ def render_risk_matrix(data: dict, key_suffix: str = "") -> None:
     
     st.plotly_chart(fig, use_container_width=True, key=f"risk_matrix_{key_suffix}")
 
+
+def render_section_scores(data: dict, key_suffix: str = "") -> None:
+    """Gauge charts in 3 columns, one per section score."""
+    scores = data.get("section_scores", {})
+    
+    market_score = scores.get("market_analysis", 5)
+    cap_score = scores.get("capabilities", 5)
+    strat_score = scores.get("strategy", 5)
+    
+    col1, col2, col3 = st.columns(3)
+    
+    def create_gauge(score, title):
+
+        if score >= 7:
+            color = SUCCESS_COLOR
+        elif score >= 4:
+            color = WARNING_COLOR
+        else:
+            color = DANGER_COLOR
+        
+        fig = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=score,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': title, 'font': {'color': TEXT_COLOR}},
+            number={'font': {'color': TEXT_COLOR}},
+            gauge={
+                'axis': {'range': [0, 10], 'tickcolor': TEXT_COLOR},
+                'bar': {'color': color},
+                'bgcolor': CARD_COLOR,
+                'borderwidth': 2,
+                'bordercolor': GRID_COLOR,
+                'steps': [
+                    {'range': [0, 4], 'color': 'rgba(239, 68, 68, 0.2)'},
+                    {'range': [4, 7], 'color': 'rgba(245, 158, 11, 0.2)'},
+                    {'range': [7, 10], 'color': 'rgba(16, 185, 129, 0.2)'}
+                ]
+            }
+        ))
+        
+        fig.update_layout(
+            paper_bgcolor=BG_COLOR,
+            font=dict(color=TEXT_COLOR, family="IBM Plex Mono"),
+            margin=dict(l=10, r=10, t=50, b=10),
+            height=250,
+        )
+        
+        return fig
+    
+    with col1:
+        st.plotly_chart(create_gauge(market_score, "Market Analysis"), use_container_width=True, key=f"gauge_market_{key_suffix}")
+    
+    with col2:
+        st.plotly_chart(create_gauge(cap_score, "Capabilities"), use_container_width=True, key=f"gauge_cap_{key_suffix}")
+    
+    with col3:
+        st.plotly_chart(create_gauge(strat_score, "Strategy"), use_container_width=True, key=f"gauge_strat_{key_suffix}")
+
+
+def render_learning_timeline(data: dict, key_suffix: str = "") -> None:
+    """Horizontal Gantt-style timeline using plotly bar chart."""
+    timeline = data.get("entry_timeline", [])
+    if not timeline:
+        st.info("Learning timeline data not available.")
+        return
+    
+    phase_colors = {
+        0: SUCCESS_COLOR,   # beginner
+        1: ACCENT_COLOR,    # intermediate
+        2: WARNING_COLOR    # advanced
+    }
+    
+
+    duration_map = {
+        "0-6 months": (0, 6),
+        "6-18 months": (6, 18),
+        "18+ months": (18, 36),
+        "18-36 months": (18, 36),
+    }
+    
+    fig = go.Figure()
+    
+    for i, phase in enumerate(timeline):
+        duration_str = phase.get("duration", "0-6 months")
+        start, end = duration_map.get(duration_str, (i*6, (i+1)*12))
+        color = phase_colors.get(i, ACCENT_COLOR)
+        
+        fig.add_trace(go.Bar(
+            x=[end - start],
+            y=[phase.get("phase", f"Phase {i+1}")],
+            base=start,
+            orientation="h",
+            marker=dict(color=color, opacity=0.85),
+            hovertemplate=(
+                f"<b>{phase.get('phase', '')}</b><br>"
+                f"Duration: {duration_str}<br>"
+                f"Key Action: {phase.get('key_action', '')}"
+                f"<extra></extra>"
+            ),
+            name=phase.get("phase", f"Phase {i+1}")
+        ))
+    
+    fig.update_layout(
+        title=dict(text="LEARNING ROADMAP TIMELINE",
+                   font=dict(family="Courier Prime, monospace", size=13, color=ACCENT_COLOR)),
+        xaxis=dict(title="Months", gridcolor=GRID_COLOR, range=[0, 38]),
+        yaxis=dict(gridcolor=GRID_COLOR),
+        barmode="overlay",
+        height=300,
+        showlegend=False,
+        **base_layout,
+    )
+    
+    st.plotly_chart(fig, use_container_width=True, key=f"timeline_{key_suffix}")
+
+
+def render_company_relevance(data: dict, key_suffix: str = "") -> None:
+    """Horizontal bar chart of top companies by relevance score."""
+    companies = data.get("top_companies", [])
+    if not companies:
+        st.info("No company data available")
+        return
+    
+
+    companies_sorted = sorted(companies, key=lambda x: x.get("relevance_score", 0), reverse=True)
+    
+    names = [c.get("name", "Unknown") for c in companies_sorted]
+    scores = [c.get("relevance_score", 0) for c in companies_sorted]
+    
+
+    colors = [f"rgba({59 + i*10}, {130 + i*10}, {246 - i*20}, 1)" for i in range(len(names))]
+    
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        y=names,
+        x=scores,
+        orientation='h',
+        marker=dict(color=colors),
+        text=[f"{s:.1f}" for s in scores],
+        textposition='outside'
+    ))
+    
+    fig.update_layout(
+        **base_layout,
+        title=dict(text="KEY MARKET PLAYERS",
+                   font=dict(family="Courier Prime, monospace", size=13, color=ACCENT_COLOR)),
+        xaxis=dict(range=[0, 11], gridcolor=GRID_COLOR),
+        yaxis=dict(gridcolor=GRID_COLOR),
+        showlegend=False,
+    )
+    
+    st.plotly_chart(fig, use_container_width=True, key=f"company_{key_suffix}")
+
+
+def render_all_charts(viz_data: dict) -> None:
+    """Master function called from streamlit_app.py. Renders all charts."""
+    
+    st.subheader("📊 Market Overview")
+    render_market_overview_chart(viz_data, key_suffix="overview")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("📈 Trend Momentum")
+        render_trends_chart(viz_data, key_suffix="overview")
+    
+    with col2:
+        st.subheader("🎯 Skills Demand")
+        render_skills_radar(viz_data, key_suffix="overview")
+    
+    st.subheader("⚠️ Risk Assessment Matrix")
+    render_risk_matrix(viz_data, key_suffix="overview")
+    
+    st.subheader("📋 Report Quality Scores")
+    render_section_scores(viz_data, key_suffix="overview")
+    
+    col3, col4 = st.columns(2)
+    
+    with col3:
+        st.subheader("🗓️ Learning Timeline")
+        render_learning_timeline(viz_data, key_suffix="overview")
+    
+    with col4:
+        st.subheader("🏢 Key Market Players")
+        render_company_relevance(viz_data, key_suffix="overview")
