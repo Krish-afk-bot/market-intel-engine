@@ -8,7 +8,8 @@ from agents.critic_agent import CriticAgent
 from agents.market_agent import MarketAgent
 from agents.research_agent import ResearchAgent
 from agents.strategy_agent import StrategyAgent
-
+from agents.tldr_agent import TLDRAgent
+from agents.visualization_agent import VisualizationAgent
 from core.cache import SimpleCache
 from core.memory import AgentMemory
 from llm.groq_client import GroqClient
@@ -140,3 +141,66 @@ Data sourced in real-time from DuckDuckGo, Wikipedia,
 and HackerNews. Self-refined using AI quality control.*
 """
         self.memory.set("final_report", final_report)
+
+        update_progress("Visualization", "Extracting data for charts...")
+        visualization_data = self.visualization.run(market)
+        update_progress("Visualization", "✓ Visualization data ready")
+
+        update_progress("Summary", "Generating executive summary...")
+        tldr_data = self.tldr.run(market)
+        update_progress("Summary", "✓ Executive summary ready")
+
+        execution_time = time.time() - start_time
+
+        return {
+            "research_summary": self._format_research_summary(final_research, market),
+            "market_analysis": final_market,
+            "capabilities": final_capabilities,
+            "strategy": final_strategy,
+            "final_report": final_report,
+            "visualization_data": visualization_data,
+            "tldr": tldr_data,
+            "llm_calls": self.llm.call_count,
+            "tokens": self.llm.total_tokens,
+            "cache_hits": self.cache.hit_count,
+            "tool_calls": self._count_tool_calls(final_research),
+            "execution_time": execution_time,
+            "agents_executed": 6 + refinement_count,
+            "refinements_made": refinement_count,
+            "sections_refined": sections_to_rerun,
+            "generated_at": analysis_start.strftime("%B %d, %Y at %H:%M UTC"),
+            "generated_at_short": analysis_start.strftime("%Y-%m-%d %H:%M"),
+            "generated_timestamp": analysis_start.isoformat(),
+        }
+
+    def reset(self):
+        self.memory.clear()
+        self.cache.reset()
+        self.llm.call_count = 0
+        self.llm.total_tokens = 0
+
+    def _format_research_summary(self, research: dict, market: str) -> str:
+        news_count = len(research.get("latest_news", {}).get("web_news", []))
+        hn_count = len(research.get("latest_news", {}).get("hn_stories", []))
+        players_count = len(
+            research.get("market_overview", {}).get("players_results", [])
+        )
+        return (
+            f"Research completed for **{market}**.\n\n"
+            f"- Web news articles: {news_count}\n"
+            f"- HackerNews stories: {hn_count}\n"
+            f"- Market player results: {players_count}\n"
+            f"- Wikipedia summary: available\n"
+        )
+
+    def _count_tool_calls(self, research: dict) -> int:
+        count = 0
+        if research.get("market_overview"):
+            count += 4
+        if research.get("latest_news"):
+            count += 2
+        if research.get("skills_data"):
+            count += 4
+        if research.get("learning_resources"):
+            count += 3
+        return count
