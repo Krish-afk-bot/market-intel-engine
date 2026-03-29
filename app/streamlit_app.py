@@ -590,3 +590,280 @@ letter-spacing:0.15em;text-transform:uppercase;margin-bottom:0.5rem;">// DATA SO
 <div style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:{TEXT_SECONDARY};line-height:1.9;">
 ● DuckDuckGo Search<br>● Wikipedia API<br>● HackerNews Algolia<br>● Groq LLM (llama-3.1-8b-instant)
 </div>""", unsafe_allow_html=True)
+
+
+st.markdown(f"""
+<div style="margin-bottom:2rem;">
+<div style="font-family:'Courier Prime',monospace;font-size:0.7rem;color:{TEXT_DIM};
+letter-spacing:0.3em;text-transform:uppercase;margin-bottom:0.5rem;">
+CLASSIFICATION: OPEN SOURCE // REAL-TIME ANALYSIS
+</div>
+<div style="font-family:'Courier Prime',monospace;font-size:2.4rem;font-weight:700;
+color:{TEXT_PRIMARY};letter-spacing:0.05em;line-height:1.1;">
+MARKET NARRATIVE<br>INTELLIGENCE
+</div>
+<div style="font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;color:{TEXT_SECONDARY};
+margin-top:0.5rem;letter-spacing:0.02em;">
+Real-time multi-agent analysis · Self-refinement loop · Powered by Groq
+</div>
+<div style="width:60px;height:2px;background-color:{ACCENT_GOLD};margin-top:1rem;"></div>
+</div>""", unsafe_allow_html=True)
+
+
+if run_button:
+    if not os.environ.get("GROQ_API_KEY", "").strip():
+        show_error("no_api_key")
+        st.stop()
+    
+    market_clean = market_input.strip()
+    if not market_clean:
+        show_error("empty_market")
+        st.stop()
+    
+    if len(market_clean) < 2:
+        show_error("market_too_short")
+        st.stop()
+    
+    if not any(c.isalpha() for c in market_clean):
+        show_error("analysis_failed", "Market name must contain letters.")
+        st.stop()
+    
+    st.session_state.report_data = None
+    st.session_state.market_name = market_clean
+
+    try:
+        orchestrator = Orchestrator(api_key)
+        progress_bar, status_container, update = show_pipeline_progress()
+
+        _stage_map = {
+            "Research":      0,
+            "Analysis":      1,
+            "Strategy":      2,
+            "Review":        3,
+            "Refinement":    4,
+            "Visualization": 5,
+        }
+        _seen = set()
+
+        def progress_callback(stage: str, message: str):
+            idx = _stage_map.get(stage)
+            if idx is not None and idx not in _seen:
+                _seen.add(idx)
+                update(idx)
+
+        update(0)
+        result = orchestrator.run(market_clean, progress_callback=progress_callback)
+        update(5)
+
+        progress_bar.empty()
+        status_container.empty()
+
+        st.session_state.report_data = result
+        st.rerun()
+
+    except Exception as e:
+        error_str = str(e).lower()
+        if "api_key" in error_str or "401" in error_str:
+            show_error("invalid_api_key")
+        elif "429" in error_str or "rate" in error_str:
+            show_error("rate_limit")
+        elif "connection" in error_str or "timeout" in error_str or "network" in error_str:
+            show_error("network_error")
+        else:
+            show_error("analysis_failed", str(e)[:100])
+        logging.exception("Pipeline error")
+        st.stop()
+
+
+if not st.session_state.report_data:
+    st.markdown(f"""
+<div style="border:1px solid {BORDER};background-color:{BG_SECONDARY};
+padding:3rem 2rem;text-align:center;margin-top:2rem;">
+<div style="font-family:'IBM Plex Mono',monospace;font-size:2rem;color:{BORDER};
+margin-bottom:1rem;">▶</div>
+<div style="font-family:'Courier Prime',monospace;font-size:1rem;color:{TEXT_PRIMARY};
+letter-spacing:0.05em;margin-bottom:0.75rem;">AWAITING TARGET MARKET</div>
+<div style="font-family:'IBM Plex Sans',sans-serif;font-size:0.85rem;color:{TEXT_DIM};
+max-width:400px;margin:0 auto;line-height:1.6;">
+Enter a market name in the sidebar and click INITIATE ANALYSIS to generate
+a structured intelligence report using 5 specialized AI agents.
+</div>
+<div style="margin-top:1.5rem;">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:{TEXT_DIM};
+border:1px solid {BORDER};padding:0.3rem 0.8rem;margin:0.2rem;display:inline-block;">Cybersecurity</span>
+<span style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:{TEXT_DIM};
+border:1px solid {BORDER};padding:0.3rem 0.8rem;margin:0.2rem;display:inline-block;">FinTech</span>
+<span style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:{TEXT_DIM};
+border:1px solid {BORDER};padding:0.3rem 0.8rem;margin:0.2rem;display:inline-block;">AI SaaS</span>
+<span style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:{TEXT_DIM};
+border:1px solid {BORDER};padding:0.3rem 0.8rem;margin:0.2rem;display:inline-block;">Semiconductors</span>
+</div>
+</div>""", unsafe_allow_html=True)
+
+
+if st.session_state.report_data:
+    result       = st.session_state.report_data
+    market_label = st.session_state.market_name
+
+    render_metrics(result)
+    st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+    
+    generated_at = result.get("generated_at", "Unknown")
+    st.markdown(f"""
+<div style="display: flex;justify-content: space-between;align-items: center;padding: 0.4rem 0.75rem;
+background-color: #0c0c0c;border: 1px solid #1c1c1c;margin-bottom: 1rem;flex-wrap: wrap;gap: 0.5rem;">
+<div style="font-family: 'IBM Plex Mono', monospace;font-size: 0.65rem;color: #525252;">
+<span style="color:#f59e0b">◈</span>&nbsp;REPORT GENERATED:&nbsp;
+<span style="color:#a3a3a3">{generated_at}</span>
+</div>
+<div style="font-family: 'IBM Plex Mono', monospace;font-size: 0.65rem;color: #525252;">
+<span style="color:#10b981">●</span>&nbsp;LIVE DATA&nbsp;·&nbsp;
+<span style="color:#525252">{result.get('tool_calls', 0)} sources fetched</span>&nbsp;·&nbsp;
+<span style="color:#525252">{result.get('llm_calls', 0)} AI agents</span>&nbsp;·&nbsp;
+<span style="color:#525252">refined {result.get('refinements_made', 0)}x</span>
+</div>
+</div>""", unsafe_allow_html=True)
+    
+    render_tldr_card(result.get("tldr", {}), market_label, generated_at)
+
+    if result.get("refinements_made", 0) > 0:
+        sections = result.get("sections_refined", [])
+        st.markdown(f"""
+<div style="background-color:rgba(245,158,11,0.05);border:1px solid rgba(245,158,11,0.2);
+border-left:3px solid {ACCENT_GOLD};padding:0.6rem 1rem;margin-bottom:1rem;
+font-family:'IBM Plex Mono',monospace;font-size:0.75rem;color:{TEXT_SECONDARY};">
+<span style="color:{ACCENT_GOLD}">◈ SELF-REFINEMENT ACTIVE</span>&nbsp;·&nbsp;
+{result["refinements_made"]} section(s) auto-improved before delivery:
+{", ".join(sections)}
+</div>""", unsafe_allow_html=True)
+
+    tabs = st.tabs([
+        "◈ RESEARCH",
+        "◈ MARKET",
+        "◈ CAPABILITIES",
+        "◈ STRATEGY",
+        "◈ CHARTS",
+        "◈ FULL REPORT",
+    ])
+
+    with tabs[0]:
+        render_section_header(
+            "RESEARCH SUMMARY",
+            f"Live data collected for: {market_label}",
+        )
+        safe_markdown(result.get("research_summary", ""))
+
+    with tabs[1]:
+        render_section_header(
+            "MARKET ANALYSIS",
+            f"Dominant narrative, trends, and outlook — {market_label}",
+        )
+        safe_markdown(result.get("market_analysis", ""))
+        
+        viz_data = result.get("visualization_data", {})
+        if viz_data.get("trends"):
+            st.markdown("""
+<div style="border-top: 1px solid #262626;margin: 1.5rem 0 1rem 0;padding-top: 1rem;">
+<span style="font-family: 'IBM Plex Mono', monospace;font-size: 0.6rem;color: #525252;
+letter-spacing: 0.15em;text-transform: uppercase;">◈ TREND VISUALIZATION</span>
+</div>""", unsafe_allow_html=True)
+            from app.charts import render_trends_chart
+            render_trends_chart(viz_data, key_suffix="inline")
+
+    with tabs[2]:
+        render_section_header(
+            "CAPABILITY ANALYSIS",
+            f"Skills, tools, salaries, and learning roadmap — {market_label}",
+        )
+        safe_markdown(result.get("capabilities", ""))
+        
+        viz_data = result.get("visualization_data", {})
+        if viz_data.get("skills"):
+            st.markdown("""
+<div style="border-top: 1px solid #262626;margin: 1.5rem 0 1rem 0;padding-top: 1rem;">
+<span style="font-family: 'IBM Plex Mono', monospace;font-size: 0.6rem;color: #525252;
+letter-spacing: 0.15em;text-transform: uppercase;">◈ SKILLS DEMAND VISUALIZATION</span>
+</div>""", unsafe_allow_html=True)
+            col1, col2 = st.columns(2)
+            with col1:
+                from app.charts import render_skills_radar
+                render_skills_radar(viz_data, key_suffix="inline")
+            with col2:
+                from app.charts import render_learning_timeline
+                render_learning_timeline(viz_data, key_suffix="inline")
+
+    with tabs[3]:
+        render_section_header(
+            "STRATEGIC ENTRY PLAN",
+            f"Entry paths, risks, and unfair advantages — {market_label}",
+        )
+        safe_markdown(result.get("strategy", ""))
+        
+        viz_data = result.get("visualization_data", {})
+        if viz_data.get("risks"):
+            st.markdown("""
+<div style="border-top: 1px solid #262626;margin: 1.5rem 0 1rem 0;padding-top: 1rem;">
+<span style="font-family: 'IBM Plex Mono', monospace;font-size: 0.6rem;color: #525252;
+letter-spacing: 0.15em;text-transform: uppercase;">◈ RISK ASSESSMENT VISUALIZATION</span>
+</div>""", unsafe_allow_html=True)
+            col1, col2 = st.columns(2)
+            with col1:
+                from app.charts import render_risk_matrix
+                render_risk_matrix(viz_data, key_suffix="inline")
+            with col2:
+                from app.charts import render_company_relevance
+                render_company_relevance(viz_data, key_suffix="inline")
+
+    with tabs[4]:
+        render_section_header(
+            "CHARTS OVERVIEW",
+            "All visualizations in one view",
+        )
+        viz_data = result.get("visualization_data", {})
+        if viz_data and any([
+            viz_data.get("trends"),
+            viz_data.get("skills"),
+            viz_data.get("risks"),
+        ]):
+            render_all_charts(viz_data)
+        else:
+            st.markdown(f"""
+<div style="border:1px solid {BORDER};background:{BG_SECONDARY};padding:2rem;
+text-align:center;font-family:'IBM Plex Mono',monospace;font-size:0.8rem;color:{TEXT_DIM};">
+◈ VISUALIZATION DATA UNAVAILABLE — Re-run analysis to generate charts.
+</div>""", unsafe_allow_html=True)
+
+    with tabs[5]:
+        render_section_header(
+            "FULL INTELLIGENCE REPORT",
+            "Complete assembled report — all sections",
+        )
+        safe_markdown(result.get("final_report", ""))
+
+    st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+    col_dl1, col_dl2, col_spacer = st.columns([1, 1, 3])
+    with col_dl1:
+        st.download_button(
+            label="↓ FULL REPORT (.md)",
+            data=result.get("final_report", ""),
+            file_name=f"MNI_{market_label.replace(' ', '_')}_report.md",
+            mime="text/markdown",
+            use_container_width=True,
+        )
+    with col_dl2:
+        st.download_button(
+            label="↓ RESEARCH DATA (.md)",
+            data=result.get("research_summary", ""),
+            file_name=f"MNI_{market_label.replace(' ', '_')}_research.md",
+            mime="text/markdown",
+            use_container_width=True,
+        )
+
+
+st.markdown(f"""
+<div style="margin-top:3rem;padding-top:1rem;border-top:1px solid {BORDER};
+font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:{TEXT_DIM};
+text-align:center;letter-spacing:0.1em;">
+MNI // MARKET NARRATIVE INTELLIGENCE // OPEN SOURCE //
+DATA: DUCKDUCKGO · WIKIPEDIA · HACKERNEWS · GROQ
+</div>""", unsafe_allow_html=True)
