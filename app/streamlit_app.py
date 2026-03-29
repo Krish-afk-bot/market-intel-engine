@@ -410,3 +410,183 @@ KEY PLAYERS: {companies_html}</div>
 </div>
 </div>
 """, unsafe_allow_html=True)
+
+
+def _safe_int(value: str) -> int:
+    """Safely convert a string to int, returning 0 on failure."""
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return 0
+
+
+def render_metrics(result: dict) -> None:
+    refinements = result.get("refinements_made", 0)
+    sections    = result.get("sections_refined", [])
+    sections_str = ", ".join(sections) if sections else "none"
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    metrics = [
+        (col1, "AGENTS",    str(result.get("agents_executed", 0)), None),
+        (col2, "LLM CALLS", str(result.get("llm_calls", 0)),       None),
+        (col3, "CACHE HITS",str(result.get("cache_hits", 0)),       None),
+        (col4, "TOOL CALLS",str(result.get("tool_calls", 0)),       None),
+        (col5, "REFINED",   str(refinements),
+            f"sections: {sections_str}" if refinements > 0 else "no refinement needed"),
+        (col6, "TIME",      f"{result.get('execution_time', 0):.1f}s", None),
+    ]
+    for col, label, value, subtitle in metrics:
+        accent = (
+            ACCENT_GOLD if label == "REFINED" and refinements > 0
+            else SUCCESS if label == "CACHE HITS" and _safe_int(value) > 0
+            else ACCENT_GOLD
+        )
+        sub_html = (
+            f'<div style="font-size:0.6rem;color:{TEXT_DIM};margin-top:0.2rem;'
+            f'font-family:IBM Plex Mono,monospace;white-space:nowrap;overflow:hidden;'
+            f'text-overflow:ellipsis;">{subtitle}</div>'
+        ) if subtitle else ""
+        with col:
+            st.markdown(f"""
+<div style="background-color:{BG_SECONDARY};border:1px solid {BORDER};
+border-top:2px solid {accent};padding:0.75rem 1rem;text-align:center;">
+<div style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;color:{TEXT_DIM};
+letter-spacing:0.15em;text-transform:uppercase;margin-bottom:0.3rem;">{label}</div>
+<div style="font-family:'IBM Plex Mono',monospace;font-size:1.5rem;color:{TEXT_PRIMARY};
+font-weight:500;line-height:1;">{value}</div>
+{sub_html}
+</div>""", unsafe_allow_html=True)
+
+
+def show_pipeline_progress():
+    stages = [
+        ("00", "RESEARCH AGENT",          "Fetching live data from web sources..."),
+        ("01", "MARKET + CAPABILITY",      "Running parallel market analysis..."),
+        ("02", "STRATEGY AGENT",           "Formulating entry strategy..."),
+        ("03", "CRITIC AGENT",             "Running quality review (backend)..."),
+        ("04", "REFINEMENT LOOP",          "Auto-improving flagged sections..."),
+        ("05", "ASSEMBLING REPORT",        "Compiling final intelligence report..."),
+    ]
+    progress_bar      = st.progress(0)
+    status_container  = st.empty()
+
+    def update(stage_index: int):
+        progress = int((stage_index + 1) / len(stages) * 100)
+        progress_bar.progress(progress)
+        stage_num, stage_name, stage_desc = stages[stage_index]
+        status_container.markdown(f"""
+<div style="background-color:{BG_SECONDARY};border:1px solid {BORDER};
+border-left:3px solid {ACCENT_GOLD};padding:0.75rem 1rem;
+font-family:'IBM Plex Mono',monospace;">
+<span style="color:{ACCENT_GOLD}">[{stage_num}]</span>
+<span style="color:{TEXT_PRIMARY};margin-left:0.5rem">{stage_name}</span><br>
+<span style="color:{TEXT_DIM};font-size:0.75rem;margin-left:1.5rem">▸ {stage_desc}</span>
+</div>""", unsafe_allow_html=True)
+
+    return progress_bar, status_container, update
+
+
+if "report_data" not in st.session_state:
+    st.session_state.report_data = None
+if "market_name" not in st.session_state:
+    st.session_state.market_name = ""
+
+
+with st.sidebar:
+    st.markdown(f"""
+<div style="padding:0 0 1rem 0;">
+<div style="font-family:'Courier Prime',monospace;font-size:2rem;font-weight:700;
+color:{ACCENT_GOLD};letter-spacing:0.15em;line-height:1;">MNI</div>
+<div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:{TEXT_DIM};
+letter-spacing:0.2em;text-transform:uppercase;margin-top:0.25rem;">MARKET NARRATIVE INTELLIGENCE</div>
+<div style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;color:{TEXT_DIM};
+letter-spacing:0.15em;margin-top:0.1rem;">v2.0 // SELF-REFINEMENT ENABLED</div>
+</div>""", unsafe_allow_html=True)
+
+    st.markdown(f'<hr style="border-color:{BORDER};margin:0.5rem 0;">',
+                unsafe_allow_html=True)
+
+    st.markdown(f"""
+<div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:{TEXT_DIM};
+letter-spacing:0.15em;text-transform:uppercase;margin-bottom:0.25rem;">// CREDENTIALS</div>
+""", unsafe_allow_html=True)
+
+    env_key = os.getenv("GROQ_API_KEY", "")
+    if env_key:
+        st.markdown(f"""
+<div style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:{SUCCESS};
+padding:0.4rem 0.6rem;border:1px solid {BORDER};border-left:3px solid {SUCCESS};
+background:rgba(16,185,129,0.05);margin-bottom:0.5rem;">
+✓ API KEY LOADED FROM .ENV
+</div>""", unsafe_allow_html=True)
+        api_key = env_key
+    else:
+        api_key = st.text_input(
+            "GROQ API KEY",
+            type="password",
+            placeholder="gsk_...",
+            help="Free at console.groq.com",
+        )
+        if api_key:
+            os.environ["GROQ_API_KEY"] = api_key
+
+    st.markdown(f'<hr style="border-color:{BORDER};margin:0.75rem 0;">',
+                unsafe_allow_html=True)
+
+    st.markdown(f"""
+<div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:{TEXT_DIM};
+letter-spacing:0.15em;text-transform:uppercase;margin-bottom:0.25rem;">// TARGET MARKET</div>
+""", unsafe_allow_html=True)
+
+    market_input = st.text_input(
+        "MARKET NAME",
+        placeholder="e.g. Cybersecurity, FinTech, AI SaaS",
+        label_visibility="collapsed",
+        value=st.session_state.get("market_suggestion", ""),
+    )
+    
+    st.markdown("""
+<div style="margin-top: 0.4rem;margin-bottom: 0.25rem;font-family: 'IBM Plex Mono', monospace;
+font-size: 0.6rem;color: #525252;letter-spacing: 0.1em;">SUGGESTED MARKETS</div>
+""", unsafe_allow_html=True)
+    
+    suggested = ["Cybersecurity", "FinTech", "AI SaaS", "Semiconductors", "Climate Tech", "HealthTech"]
+
+    cols = st.columns(2)
+    for i, suggestion in enumerate(suggested):
+        with cols[i % 2]:
+            if st.button(suggestion, key=f"suggest_{suggestion}", use_container_width=True):
+                st.session_state["market_suggestion"] = suggestion
+                st.rerun()
+    
+    if "market_suggestion" in st.session_state and market_input:
+        if market_input == st.session_state.get("market_suggestion"):
+            st.session_state.pop("market_suggestion", None)
+    
+    st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
+    run_button = st.button("▶  INITIATE ANALYSIS", use_container_width=True)
+
+    st.markdown(f'<hr style="border-color:{BORDER};margin:0.75rem 0;">',
+                unsafe_allow_html=True)
+
+    st.markdown(f"""
+<div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:{TEXT_DIM};
+letter-spacing:0.15em;text-transform:uppercase;margin-bottom:0.5rem;">// PIPELINE STAGES</div>
+<div style="font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:{TEXT_SECONDARY};line-height:2;">
+<span style="color:{ACCENT_GOLD}">00</span> RESEARCH AGENT&nbsp;&nbsp;&nbsp;↓ live data fetch<br>
+<span style="color:{ACCENT_GOLD}">01</span> MARKET AGENT ──┐<br>
+<span style="color:{ACCENT_GOLD}">02</span> CAPABILITY&nbsp;&nbsp;&nbsp;──┘ parallel&nbsp;&nbsp;&nbsp;↓ join<br>
+<span style="color:{ACCENT_GOLD}">03</span> STRATEGY AGENT&nbsp;&nbsp;&nbsp;↓<br>
+<span style="color:{ACCENT_GOLD}">04</span> CRITIC AGENT&nbsp;&nbsp;&nbsp;↓ backend only<br>
+<span style="color:{ACCENT_GOLD}">05</span> REFINEMENT LOOP&nbsp;&nbsp;&nbsp;↓ auto-improve<br>
+<span style="color:{ACCENT_GOLD}">06</span> FINAL REPORT
+</div>""", unsafe_allow_html=True)
+
+    st.markdown(f'<hr style="border-color:{BORDER};margin:0.75rem 0;">',
+                unsafe_allow_html=True)
+
+    st.markdown(f"""
+<div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:{TEXT_DIM};
+letter-spacing:0.15em;text-transform:uppercase;margin-bottom:0.5rem;">// DATA SOURCES</div>
+<div style="font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:{TEXT_SECONDARY};line-height:1.9;">
+● DuckDuckGo Search<br>● Wikipedia API<br>● HackerNews Algolia<br>● Groq LLM (llama-3.1-8b-instant)
+</div>""", unsafe_allow_html=True)
