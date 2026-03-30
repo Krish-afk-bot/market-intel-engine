@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🎯 Market Narrative Intelligence (MNI)
+#  Market Narrative Intelligence (MNI)
 
 **AI-powered market research that runs in minutes, not days**
 
@@ -20,13 +20,13 @@
 
 ---
 
-## 🧭 Mission
+##  Mission
 
 Make professional-grade market intelligence accessible to everyone — founders, analysts, students, and researchers — without expensive subscriptions or manual data collection. MNI uses coordinated AI agents and real-time public data to generate structured reports grounded in actual sources, not hallucinations.
 
 ---
 
-## 🔴 The Challenge
+##  The Challenge
 
 Traditional market research is:
 - **Slow**: Analysts spend 4-8 hours manually collecting data from news sites, job boards, Wikipedia, and forums
@@ -41,7 +41,7 @@ Existing AI tools either:
 
 ---
 
-## ✅ Our Solution
+##  Our Solution
 
 MNI runs an **8-stage autonomous pipeline** with specialized AI agents:
 
@@ -57,26 +57,26 @@ Every section is grounded in data collected at runtime. No hardcoded content. No
 
 ---
 
-## ✨ Key Features
+##  Key Features
 
 | Feature | Description |
 |---------|-------------|
-| 🤖 **7 Specialized Agents** | Each agent has one job: research, market analysis, capability mapping, strategy, critique, refinement, visualization, or executive summary |
-| ⚡ **Parallel Execution** | Market and Capability agents run concurrently, cutting pipeline time by ~40% |
-| 🔄 **Self-Refinement Loop** | Critic agent scores each section (1-10); sections scoring <7 are automatically rewritten with specific improvement instructions |
-| 🎯 **TL;DR Summary Card** | Executive brief with market size, growth rate, entry difficulty, time-to-revenue, best opportunity, biggest risk, and verdict |
-| 🔍 **Market Disambiguation** | Vague inputs like "trading" or "AI" are automatically clarified before search to avoid irrelevant results |
-| 💾 **SHA-256 LLM Cache** | Identical prompts served from memory — no duplicate API calls within a session |
-| 📊 **7 Interactive Charts** | Market metrics, trend momentum, skills radar, risk matrix, quality gauges, learning timeline, key players |
-| 🖥️ **Intelligence War Room UI** | Dark obsidian theme with amber accents, real-time pipeline progress, inline charts in tabs |
-| 💻 **CLI Runner** | Headless mode for scripting, automation, or CI pipelines |
-| 📥 **Export Options** | Download full report as Markdown or research data separately |
-| ⏱️ **Timestamp Tracking** | Every report shows generation time, data freshness, sources fetched, and refinement count |
-| 🎨 **Inline Visualizations** | Charts embedded directly in relevant tabs (trends in Market, skills in Capabilities, risks in Strategy) |
+|  **7 Specialized Agents** | Each agent has one job: research, market analysis, capability mapping, strategy, critique, refinement, visualization, or executive summary |
+|  **Parallel Execution** | Market and Capability agents run concurrently, cutting pipeline time by ~40% |
+|  **Self-Refinement Loop** | Critic agent scores each section (1-10); sections scoring <7 are automatically rewritten with specific improvement instructions |
+|  **TL;DR Summary Card** | Executive brief with market size, growth rate, entry difficulty, time-to-revenue, best opportunity, biggest risk, and verdict |
+|  **Market Disambiguation** | Vague inputs like "trading" or "AI" are automatically clarified before search to avoid irrelevant results |
+|  **SHA-256 LLM Cache** | Identical prompts served from memory — no duplicate API calls within a session |
+|  **7 Interactive Charts** | Market metrics, trend momentum, skills radar, risk matrix, quality gauges, learning timeline, key players |
+|  **Intelligence War Room UI** | Dark obsidian theme with amber accents, real-time pipeline progress, inline charts in tabs |
+|  **CLI Runner** | Headless mode for scripting, automation, or CI pipelines |
+|  **Export Options** | Download full report as Markdown or research data separately |
+|  **Timestamp Tracking** | Every report shows generation time, data freshness, sources fetched, and refinement count |
+|  **Inline Visualizations** | Charts embedded directly in relevant tabs (trends in Market, skills in Capabilities, risks in Strategy) |
 
 ---
 
-## ⚙️ How It Works
+##  How It Works
 
 ```
 Input: "Cybersecurity"
@@ -140,7 +140,7 @@ Input: "Cybersecurity"
 
 ---
 
-## 🏗️ System Architecture
+##  System Architecture
 
 ```
 market-narrative-intelligence/
@@ -185,7 +185,7 @@ market-narrative-intelligence/
 
 ---
 
-## 🗺️ User Journey
+##  User Journey
 
 | Step | Action | What Happens |
 |------|--------|--------------|
@@ -201,7 +201,7 @@ market-narrative-intelligence/
 
 ---
 
-## 🛠️ Technology Stack
+##  Technology Stack
 
 ### AI & LLM
 
@@ -233,7 +233,7 @@ market-narrative-intelligence/
 
 ---
 
-## 🚀 Quick Start
+##  Quick Start
 
 **Requirements:** Python 3.10+, a free [Groq API key](https://console.groq.com)
 
@@ -321,7 +321,7 @@ Charts embedded directly in relevant tabs:
 
 ---
 
-## 🤝 Contributing
+##  Contributing
 
 Contributions are welcome! A few guidelines to keep the codebase clean:
 
@@ -352,7 +352,7 @@ python -m streamlit run app/streamlit_app.py
 
 ---
 
-## 📊 Example Output
+##  Example Output
 
 **Input:** `"Cybersecurity"`
 
@@ -384,13 +384,13 @@ python -m streamlit run app/streamlit_app.py
 
 ---
 
-## 📄 License
+##  License
 
 MIT License — free to use, modify, and distribute. See `LICENSE` for details.
 
 ---
 
-## 🙏 Acknowledgments
+##  Acknowledgments
 
 Built with:
 - [Groq](https://groq.com) — Ultra-fast LLM inference
